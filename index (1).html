@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conquête des Territoires</title>
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+  <!-- ===== EN-TÊTE DU JEU ===== -->
+  <header class="header">
+    <h1 class="title"><i class="fas fa-shield-halved"></i> Conquête des Territoires</h1>
+    <p class="subtitle">Jeu de stratégie au tour par tour — 2 joueurs</p>
+    <div class="btns-icones-header">
+    <button class="btn-icone btn-icone-pause" id="btn-pause" onclick="basculerPause()" title="Pause">
+      <i class="fas fa-pause"></i>
+    </button>
+    <button class="btn-icone btn-icone-accueil" onclick="retourAccueil()" title="Accueil">
+      <i class="fas fa-house"></i>
+    </button>
+  </div>
+  
+  </header>
+
+  <!-- ===== PANNEAU DE STATUT DES JOUEURS ===== -->
+  <div class="players-panel">
+
+    <!-- Joueur 1 -->
+    <div class="player-card" id="card-j1">
+      <div class="player-name"><i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 — Alice</div>
+      <div class="player-stats">
+        <span>Cases : <strong id="score-j1">0</strong></span>
+        <span>Unités : <strong id="units-j1">5</strong></span>
+
+      </div>
+      <div class="progress-bar-container">
+    <div class="progress-bar-fill" id="progress-j1"></div>
+    <div class="progress-bar-marker"></div>
+  </div>
+      <div class="player-units" id="units-display-j1"></div>
+    </div>
+
+    <!-- Centre : infos de tour -->
+    <div class="turn-panel">
+      <div class="turn-label">Tour actuel</div>
+      <div class="turn-indicator" id="turn-indicator">🔵 Joueur 1</div>
+      <div class="phase-label" id="phase-label">Phase : Placement</div>
+      <div class="timer-area">
+        <span class="timer-label"><i class="fas fa-clock"></i> TEMPS</span>
+        <span class="timer-display" id="timer-display">—</span>
+      </div>
+      <div class="dice-area">
+        <button class="btn-dice" id="btn-dice" onclick="lancerDe()"><i class="fas fa-dice"></i> Lancer le dé</button>
+        <div class="dice-result" id="dice-result">—</div>
+      </div>
+      <div class="action-msg" id="action-msg">Placez vos unités dans votre zone de départ.</div>
+      <button class="btn-end" id="btn-end-turn" onclick="finirTour()"><i class="fas fa-forward-step"></i> Fin de tour</button>
+      
+    </div>
+
+    <!-- Joueur 2 -->
+    <div class="player-card" id="card-j2">
+      <div class="player-name"><i class="fas fa-circle" style="color:var(--j2)"></i> Joueur 2 — Bob</div>
+      <div class="player-stats">
+        <span>Cases : <strong id="score-j2">0</strong></span>
+        <span>Unités : <strong id="units-j2">5</strong></span>
+      </div>
+      <div class="progress-bar-container">
+    <div class="progress-bar-fill" id="progress-j2"></div>
+    <div class="progress-bar-marker"></div>
+  </div>
+      <div class="player-units" id="units-display-j2"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== SÉLECTEUR D'UNITÉ À PLACER ===== -->
+  <div class="unit-picker" id="unit-picker">
+    <span class="picker-label">Choisir une unité à placer :</span>
+    <button class="btn-unit" onclick="choisirUnite('S')"><i class="fas fa-helmet-safety"></i> Soldat (F:3, Dep:1)</button>
+    <button class="btn-unit" onclick="choisirUnite('C')"><i class="fas fa-horse"></i> Cavalier (F:2, Dep:2)</button>
+    <button class="btn-unit" onclick="choisirUnite('T')"><i class="fas fa-shield-halved"></i> Tank (F:5, Dep:1)</button>
+    <span id="unites-restantes" class="picker-count"></span>
+  </div>
+
+  <!-- ===== GRILLE + JOURNAL CÔTE À CÔTE ===== -->
+  <div class="game-area">
+    <div class="grid-left">
+      <div class="grid-container">
+        <div class="grid" id="grid"></div>
+      </div>
+      <div class="legend">
+        <span class="legend-item neutral"><i class="fas fa-square"></i> Neutre</span>
+        <span class="legend-item j1"><i class="fas fa-circle"></i> Joueur 1</span>
+        <span class="legend-item j2"><i class="fas fa-circle"></i> Joueur 2</span>
+        <span class="legend-item bonus"><i class="fas fa-star"></i> Bonus (+2)</span>
+        <span class="legend-item trap"><i class="fas fa-skull"></i> Piège (-1 unité)</span>
+        <span class="legend-item selected"><i class="fas fa-crosshairs"></i> Sélectionné</span>
+        <span class="legend-item reachable"><i class="fas fa-arrow-right"></i> Accessible</span>
+        <span class="legend-item" style="border-color:white; background:rgba(255,255,255,0.1)">
+  <i class="fas fa-shield"></i> Défense (+3)
+</span>
+      </div>
+    </div>
+    <div class="log-area">
+      <h3 class="log-title"><i class="fas fa-scroll"></i> Journal des événements</h3>
+      <div class="log-content" id="log"></div>
+    </div>
+  </div>
+
+  <!-- ===== FENÊTRE MODALE DE FIN DE PARTIE ===== -->
+  <div class="modal" id="modal-fin">
+    <div class="modal-box">
+      <div class="modal-icon" id="modal-icon"><i class="fas fa-trophy"></i></div>
+      <h2 class="modal-title" id="modal-title">Partie terminée !</h2>
+      <p class="modal-msg" id="modal-msg"></p>
+      <button class="btn-restart" onclick="reinitialiserJeu()"><i class="fas fa-rotate-right"></i> Nouvelle partie</button>
+    </div>
+  </div>
+
+  <!-- ===== ÉCRAN DE DÉMARRAGE ===== -->
+  <div id="start-screen">
+    <div class="start-box">
+      <div class="start-icon"><i class="fas fa-shield-halved"></i></div>
+      <h1 class="start-title">Conquête des Territoires</h1>
+      <p class="start-subtitle">Jeu de stratégie au tour par tour</p>
+      <div class="start-rules">
+        <div class="rule-item"><i class="fas fa-helmet-safety"></i> &nbsp;3 types d'unités — Soldat, Cavalier, Tank</div>
+        <div class="rule-item"><i class="fas fa-dice"></i> &nbsp;Lancez le dé avant chaque déplacement</div>
+        <div class="rule-item"><i class="fas fa-clock"></i> &nbsp;30 secondes par tour</div>
+        <div class="rule-item"><i class="fas fa-star"></i> &nbsp;Bonus : +2 unités &nbsp;|&nbsp; <i class="fas fa-skull"></i> Piège : -1 unité</div>
+        <div class="rule-item"><i class="fas fa-trophy"></i> &nbsp;Contrôlez 33 cases pour gagner</div>
+      </div>
+      <div class="mode-buttons">
+        <button class="btn-mode btn-mode-pc" onclick="lancerJeu('pc')"><i class="fas fa-robot"></i> Contre le PC</button>
+        <button class="btn-mode btn-mode-2j" onclick="lancerJeu('2joueurs')"><i class="fas fa-users"></i> 2 Joueurs</button>
+      </div>
+    </div>
+  </div>
+   <div class="overlay-pause" id="overlay-pause">
+    <div class="pause-box">
+      <div class="pause-icon"><i class="fas fa-pause"></i></div>
+      <h2 class="pause-titre">Jeu en Pause</h2>
+      <p class="pause-msg">Le timer est arrêté</p>
+      <button class="btn-reprendre" onclick="basculerPause()">
+        <i class="fas fa-play"></i> Reprendre
+      </button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
