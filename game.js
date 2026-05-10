@@ -154,19 +154,6 @@ function demarrerPhaseJeu() {
   log('<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1, lancez votre dé !', 'j1');
 }
 
-function tiragePourCommencer() {
-  log('<i class="fas fa-dice"></i> Tirage au sort pour déterminer qui commence...', 'sys');
-
-  const deJ1 = Math.floor(Math.random() * 6) + 1;
-  const deJ2 = Math.floor(Math.random() * 6) + 1;
-
-  log(`<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 tire : <strong>${deJ1}</strong>`, 'j1');
-
-  const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
-  log(`<i class="fas fa-circle" style="color:var(--j2)"></i> ${nomJ2} tire : <strong>${deJ2}</strong>`, 'j2');
-
-  determinerPremierJoueur(deJ1, deJ2);
-}
 
 function determinerPremierJoueur(deJ1, deJ2) {
   const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
