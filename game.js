@@ -298,8 +298,7 @@ function lancerCombat(att, dl, dc) {
   const scoreAtt = etat.valeurDe + TYPES_UNITES[att.type].force;
 
   const bonusDefense = def.enDefense ? BONUS_DEFENSE : 0;
-  const scoreDef = (Math.floor(Math.random() * 6) + 1)
-                 + TYPES_UNITES[def.type].force
+  const scoreDef = TYPES_UNITES[def.type].force
                  + (def.type === 'T' ? 2 : 0)
                  + bonusDefense;
 
