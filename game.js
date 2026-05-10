@@ -501,7 +501,9 @@ function verifierVictoire() {
 function lancerJeu(mode) {
   etat.modeJeu = mode || 'pc';
   const screen = document.getElementById('start-screen');
+
   screen.classList.add('fading-out');
+  document.getElementById('unit-picker').style.display = 'flex';
   screen.addEventListener('animationend', () => {
     screen.classList.add('hidden');
     screen.classList.remove('fading-out');
