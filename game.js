@@ -25,7 +25,9 @@ function reinitialiserJeu() {
     timerId:           null,
     tempsRestant:      DUREE_TOUR,
     modeJeu:           modeActuel,
-    enPause: false 
+    enPause: false ,
+    tirageJ1 : null,
+    tirageJ2 : null
   };
   document.getElementById('timer-display').textContent = '—';
   document.getElementById('timer-display').className = 'timer-display';
@@ -136,21 +138,108 @@ function placementAutomatiquePC() {
 // PHASE DE JEU
 // ============================================================
 function demarrerPhaseJeu() {
-  etat.phase = 'jeu';
-  etat.joueurActif = 'j1';          // ← force J1 en premier
+  etat.phase = 'tirage'; // ← nouvelle phase temporaire
   etat.deJete = false;
   etat.valeurDe = 0;
+  etat.tirageJ1 = null;
+  etat.tirageJ2 = null;
   document.getElementById('unit-picker').style.display = 'none';
-  document.getElementById('btn-dice').disabled = false;
+  document.getElementById('btn-dice').disabled = false; // J1 peut lancer
   document.getElementById('dice-result').textContent = '—';
-  mettreAJourUI();                  // ← met à jour l'affichage pour J1
+  document.getElementById('phase-label').textContent = 'Phase : Tirage initial';
+  document.getElementById('action-msg').textContent = '🎲 Joueur 1, lancez votre dé pour déterminer qui commence !';
+  mettreAJourUI();
   log('<i class="fas fa-flag"></i> La partie commence !', 'sys');
-  log('<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 commence !', 'j1');
+  log('<i class="fas fa-dice"></i> Tirage au sort — qui commence ?', 'sys');
+  log('<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1, lancez votre dé !', 'j1');
+}
+
+function tiragePourCommencer() {
+  log('<i class="fas fa-dice"></i> Tirage au sort pour déterminer qui commence...', 'sys');
+
+  const deJ1 = Math.floor(Math.random() * 6) + 1;
+  const deJ2 = Math.floor(Math.random() * 6) + 1;
+
+  log(`<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 tire : <strong>${deJ1}</strong>`, 'j1');
+
+  const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
+  log(`<i class="fas fa-circle" style="color:var(--j2)"></i> ${nomJ2} tire : <strong>${deJ2}</strong>`, 'j2');
+
+  determinerPremierJoueur(deJ1, deJ2);
+}
+
+function determinerPremierJoueur(deJ1, deJ2) {
+  const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
+
+  // Égalité → relancer
+  if (deJ1 === deJ2) {
+    log(`<i class="fas fa-equals"></i> Égalité (${deJ1}) ! On relance...`, 'sys');
+    document.getElementById('action-msg').textContent = `Égalité ! Joueur 1, relancez le dé.`;
+    etat.tirageJ1 = null;
+    etat.tirageJ2 = null;
+    document.getElementById('btn-dice').disabled = false;
+    log('<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1, relancez votre dé !', 'j1');
+    return;
+  }
+
+  // Déterminer le gagnant
+  etat.joueurActif = deJ1 > deJ2 ? 'j1' : 'j2';
+  const gagnantNom = etat.joueurActif === 'j1' ? 'Joueur 1' : nomJ2;
+
+  log(`<i class="fas fa-trophy"></i> <strong>${gagnantNom}</strong> commence avec ${Math.max(deJ1, deJ2)} !`, 'sys');
+  document.getElementById('action-msg').textContent = `${gagnantNom} commence !`;
+
+  // Passer en phase jeu réelle
+  etat.phase = 'jeu';
+  etat.deJete = false;
+  etat.valeurDe = 0;
+  document.getElementById('dice-result').textContent = '—';
+  document.getElementById('phase-label').textContent = 'Phase : Jeu';
+  mettreAJourUI();
   demarrerTimer();
+
+  // Si PC commence
+  if (etat.joueurActif === 'j2' && etat.modeJeu === 'pc') {
+    document.getElementById('btn-dice').disabled = true;
+    setTimeout(jouerTourPC, 1000);
+  } else {
+    // J1 commence → activer le dé
+    document.getElementById('btn-dice').disabled = false;
+    log('<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1, lancez votre dé !', 'j1');
+  }
 }
 
 function lancerDe() {
   if (etat.enPause) return;
+
+  // ── CAS TIRAGE INITIAL ──────────────────────────────────────
+  if (etat.phase === 'tirage') {
+
+    if (etat.tirageJ1 === null) {
+      // Étape 1 : J1 lance son dé
+      etat.tirageJ1 = Math.floor(Math.random() * 6) + 1;
+      document.getElementById('dice-result').textContent = etat.tirageJ1;
+      document.getElementById('btn-dice').disabled = true;
+      log(`<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 tire : <strong>${etat.tirageJ1}</strong>`, 'j1');
+      document.getElementById('action-msg').textContent = `Joueur 1 : ${etat.tirageJ1} — Le PC lance son dé...`;
+
+      // Étape 2 : PC/J2 lance automatiquement après 1.5s
+      setTimeout(() => {
+        etat.tirageJ2 = Math.floor(Math.random() * 6) + 1;
+        const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
+        document.getElementById('dice-result').textContent = etat.tirageJ2;
+        log(`<i class="fas fa-robot"></i> ${nomJ2} tire : <strong>${etat.tirageJ2}</strong>`, 'j2');
+        document.getElementById('action-msg').textContent = `${nomJ2} : ${etat.tirageJ2}`;
+
+        // Étape 3 : comparaison après 1s
+        setTimeout(() => determinerPremierJoueur(etat.tirageJ1, etat.tirageJ2), 1000);
+      }, 1500);
+    }
+
+    return; // ← sortir, pas de logique jeu normal
+  }
+
+  // ── CAS JEU NORMAL ──────────────────────────────────────────
   if (etat.deJete) return;
   etat.valeurDe = Math.floor(Math.random() * 6) + 1;
   etat.deJete = true;
@@ -305,8 +394,7 @@ function lancerCombat(att, dl, dc) {
   if (def.enDefense) {
     log(`<i class="fas fa-shield"></i> ${TYPES_UNITES[def.type].nom} est en défense ! (+${BONUS_DEFENSE})`, 'combat');
   }
-  log(`<i class="fas fa-sword"></i> Combat : ${scoreAtt} vs ${scoreDef}`, 'combat');
-
+ log(`<i class="fas fa-sword"></i> Combat : ${TYPES_UNITES[att.type].nom} ${scoreAtt} vs ${TYPES_UNITES[def.type].nom}  ${scoreDef}`, 'combat');
   if (scoreAtt > scoreDef) {
     log('<i class="fas fa-check-circle"></i> Victoire ! Case capturée.', att.joueur);
     const combatEl = document.getElementById(`cell-${dl}-${dc}`);

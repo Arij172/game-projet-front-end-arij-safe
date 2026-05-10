@@ -181,7 +181,7 @@ body {
 .legend-item.selected  { background: rgba(245,166,35,0.2); border-color: var(--selected); }
 .legend-item.reachable { background: rgba(82,183,136,0.2); border-color: var(--reachable); }
 
-/* === MODALE FIN DE PARTIE === */
+                     /* === MODALE FIN DE PARTIE === */
 .modal {
   display: none;
   position: fixed;
@@ -222,7 +222,7 @@ body {
 }
 .btn-restart:hover { opacity: 0.85; }
 
-/* === ÉCRAN DE DÉMARRAGE === */
+                                        /* === ÉCRAN DE DÉMARRAGE === */
 #start-screen {
   position: fixed;
   inset: 0;
@@ -303,7 +303,7 @@ body {
 .btn-mode:hover { opacity: 0.85; transform: scale(1.04); }
 
 
-/* === LAYOUT GRILLE + JOURNAL === */
+                                    /* === LAYOUT GRILLE + JOURNAL === */
 .game-area {
   display: flex;
   gap: 16px;
@@ -319,7 +319,7 @@ body {
   flex-shrink: 0;
 }
 
-/* === FONDU ÉCRAN DE DÉMARRAGE === */
+                                       /* === FONDU ÉCRAN DE DÉMARRAGE === */
 @keyframes fadeOutScreen {
   from { opacity: 1; }
   to   { opacity: 0; }
