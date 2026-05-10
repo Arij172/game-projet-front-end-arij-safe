@@ -322,7 +322,7 @@ function lancerCombat(att, dl, dc) {
 }
 function activerDefense(ligne, col) {
   if (etat.phase !== 'jeu') return;
-  if (etat.modeJeu === 'pc' && etat.joueurActif !== 'j1') return;
+  //if (etat.modeJeu === 'pc' && etat.joueurActif !== 'j1') return;
 
   const unite = etat.grille[ligne][col].unite;
   if (!unite || unite.joueur !== etat.joueurActif) return;
@@ -380,28 +380,52 @@ function jouerTourPC() {
     for (let u of mesUnites) {
       const cibles = calculerCasesAccessibles(u);
 
-      if (cibles.length > 0) {
-        // PC peut bouger ou attaquer
-        const attaque = cibles.find(c => c.estEnnemi);
-        const cible   = attaque || cibles[Math.floor(Math.random() * cibles.length)];
-        if (cible.estEnnemi) lancerCombat(u, cible.l, cible.c);
-        else deplacerUnite(u, cible.l, cible.c);
-        actionFaite = true;
-        break;
-
-      } else {
-        // PC bloqué → active la défense
-        log('<i class="fas fa-shield"></i> PC met une unité en défense !', 'j2');
+      // CONDITION 1 : PC bloqué
+      if (cibles.length === 0) {
+        log('<i class="fas fa-shield"></i> PC bloqué → défense !', 'j2');
         activerDefense(u.ligne, u.col);
         actionFaite = true;
         break;
       }
+
+      // CONDITION 2 : ennemi adjacent plus fort que l'unité du PC
+      if (verifierEnnemiplusFort(u)) {
+        log('<i class="fas fa-shield"></i> PC détecte un ennemi plus fort → défense !', 'j2');
+        activerDefense(u.ligne, u.col);
+        actionFaite = true;
+        break;
+      }
+
+      // comportement normal : attaquer ou se déplacer
+      const attaque = cibles.find(c => c.estEnnemi);
+      const cible   = attaque || cibles[Math.floor(Math.random() * cibles.length)];
+      if (cible.estEnnemi) lancerCombat(u, cible.l, cible.c);
+      else deplacerUnite(u, cible.l, cible.c);
+      actionFaite = true;
+      break;
     }
 
     if (!actionFaite) finirTour();
   }, 1000);
 }
 
+// Vérifie si un ennemi adjacent est plus fort que l'unité du PC
+function verifierEnnemiplusFort(unite) {
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  for (let d of dirs) {
+    const nl = unite.ligne + d[0];
+    const nc = unite.col   + d[1];
+    if (nl < 0 || nl >= TAILLE_GRILLE) continue;
+    if (nc < 0 || nc >= TAILLE_GRILLE) continue;
+    const voisine = etat.grille[nl][nc];
+    if (voisine.unite &&
+        voisine.unite.joueur !== unite.joueur &&
+        TYPES_UNITES[voisine.unite.type].force > TYPES_UNITES[unite.type].force) {
+      return true;
+    }
+  }
+  return false;
+}
 // ============================================================
 // FONCTIONS UTILITAIRES
 // ============================================================
