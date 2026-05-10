@@ -138,13 +138,14 @@ function placementAutomatiquePC() {
 // PHASE DE JEU
 // ============================================================
 function demarrerPhaseJeu() {
-  etat.phase = 'tirage'; // ← nouvelle phase temporaire
+  etat.phase = 'tirage'; 
+  etat.joueurActif = 'j1';
   etat.deJete = false;
   etat.valeurDe = 0;
   etat.tirageJ1 = null;
   etat.tirageJ2 = null;
   document.getElementById('unit-picker').style.display = 'none';
-  document.getElementById('btn-dice').disabled = false; // J1 peut lancer
+  document.getElementById('btn-dice').disabled = false; 
   document.getElementById('dice-result').textContent = '—';
   document.getElementById('phase-label').textContent = 'Phase : Tirage initial';
   document.getElementById('action-msg').textContent = '🎲 Joueur 1, lancez votre dé pour déterminer qui commence !';
@@ -199,28 +200,42 @@ function determinerPremierJoueur(deJ1, deJ2) {
 function lancerDe() {
   if (etat.enPause) return;
 
-  // ── CAS TIRAGE INITIAL ──────────────────────────────────────
+  // ── CAS TIRAGE INITIAL 
   if (etat.phase === 'tirage') {
 
+    // Étape 1 : J1 lance son dé
     if (etat.tirageJ1 === null) {
-      // Étape 1 : J1 lance son dé
       etat.tirageJ1 = Math.floor(Math.random() * 6) + 1;
       document.getElementById('dice-result').textContent = etat.tirageJ1;
       document.getElementById('btn-dice').disabled = true;
       log(`<i class="fas fa-circle" style="color:var(--j1)"></i> Joueur 1 tire : <strong>${etat.tirageJ1}</strong>`, 'j1');
-      document.getElementById('action-msg').textContent = `Joueur 1 : ${etat.tirageJ1} — Le PC lance son dé...`;
+      document.getElementById('action-msg').textContent = `Joueur 1 : ${etat.tirageJ1}...`;
 
-      // Étape 2 : PC/J2 lance automatiquement après 1.5s
       setTimeout(() => {
-        etat.tirageJ2 = Math.floor(Math.random() * 6) + 1;
-        const nomJ2 = etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2';
-        document.getElementById('dice-result').textContent = etat.tirageJ2;
-        log(`<i class="fas fa-robot"></i> ${nomJ2} tire : <strong>${etat.tirageJ2}</strong>`, 'j2');
-        document.getElementById('action-msg').textContent = `${nomJ2} : ${etat.tirageJ2}`;
+        if (etat.modeJeu === 'pc') {
+          // ── PC lance automatiquement ──
+          etat.tirageJ2 = Math.floor(Math.random() * 6) + 1;
+          document.getElementById('dice-result').textContent = etat.tirageJ2;
+          log(`<i class="fas fa-robot"></i> PC tire : <strong>${etat.tirageJ2}</strong>`, 'j2');
+          document.getElementById('action-msg').textContent = `PC : ${etat.tirageJ2}`;
+          setTimeout(() => determinerPremierJoueur(etat.tirageJ1, etat.tirageJ2), 1000);
 
-        // Étape 3 : comparaison après 1s
-        setTimeout(() => determinerPremierJoueur(etat.tirageJ1, etat.tirageJ2), 1000);
+        } else {
+          // ── Mode 2 joueurs : J2 doit cliquer ──
+          document.getElementById('btn-dice').disabled = false;
+          document.getElementById('action-msg').textContent = `Joueur 1 : ${etat.tirageJ1} — Joueur 2, lancez votre dé !`;
+          log(`<i class="fas fa-circle" style="color:var(--j2)"></i> Joueur 2, lancez votre dé !`, 'j2');
+        }
       }, 1500);
+
+    // Étape 2 : J2 lance son dé (mode 2 joueurs uniquement)
+    } else if (etat.tirageJ1 !== null && etat.tirageJ2 === null && etat.modeJeu === '2joueurs') {
+      etat.tirageJ2 = Math.floor(Math.random() * 6) + 1;
+      document.getElementById('dice-result').textContent = etat.tirageJ2;
+      document.getElementById('btn-dice').disabled = true;
+      log(`<i class="fas fa-circle" style="color:var(--j2)"></i> Joueur 2 tire : <strong>${etat.tirageJ2}</strong>`, 'j2');
+      document.getElementById('action-msg').textContent = `Joueur 2 : ${etat.tirageJ2}`;
+      setTimeout(() => determinerPremierJoueur(etat.tirageJ1, etat.tirageJ2), 1000);
     }
 
     return; // ← sortir, pas de logique jeu normal
@@ -232,7 +247,9 @@ function lancerDe() {
   etat.deJete = true;
   document.getElementById('dice-result').textContent = etat.valeurDe;
   document.getElementById('btn-dice').disabled = true;
-  const nomJoueur = etat.joueurActif === 'j1' ? 'Joueur 1' : (etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2');
+  const nomJoueur = etat.joueurActif === 'j1'
+    ? 'Joueur 1'
+    : (etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2');
   log(`<i class="fas fa-dice"></i> ${nomJoueur} lance le dé : ${etat.valeurDe}`, etat.joueurActif);
 }
 function basculerPause() {
@@ -397,22 +414,29 @@ function lancerCombat(att, dl, dc) {
 }
 function activerDefense(ligne, col) {
   if (etat.phase !== 'jeu') return;
-  //if (etat.modeJeu === 'pc' && etat.joueurActif !== 'j1') return;
 
   const unite = etat.grille[ligne][col].unite;
-  if (!unite || unite.joueur !== etat.joueurActif) return;
+  if (!unite) return;
+  if (unite.joueur !== etat.joueurActif) return;
+
+  if (unite.enDefense) {
+    finirTour();
+    return;
+  }
 
   unite.enDefense = true;
   mettreAJourCase(ligne, col);
 
-  const nomUnite = TYPES_UNITES[unite.type].nom;
-  log(`<i class="fas fa-shield"></i> ${nomUnite} passe en mode défense ! (+${BONUS_DEFENSE})`, etat.joueurActif);
+  const nomUnite  = TYPES_UNITES[unite.type].nom;
+  const nomJoueur = etat.joueurActif === 'j1'
+    ? 'Joueur 1'
+    : (etat.modeJeu === 'pc' ? 'PC' : 'Joueur 2');
+  log(`<i class="fas fa-shield"></i> ${nomJoueur} — ${nomUnite} en défense ! (+${BONUS_DEFENSE})`, etat.joueurActif);
 
   deselectionner();
   verifierVictoire();
   if (etat.phase === 'jeu') finirTour();
 }
-
 function finaliserAction() {
   mettreAJourUI();
   deselectionner();
@@ -446,32 +470,42 @@ function jouerTourPC() {
   lancerDe();
   setTimeout(() => {
     if (etat.enPause) return;
+
     const mesUnites = etat.unites
       .filter(u => u.joueur === 'j2' && u.estVivante)
       .sort(() => Math.random() - 0.5);
 
-    let actionFaite = false;
+    // PRIORITÉ 1 : défendre l'unité la plus vulnérable en danger
+    const unitesEnDanger = mesUnites
+      .filter(u => verifierEnnemiplusFort(u) && !u.enDefense)
+      .sort((a, b) => {
+        const forceA = TYPES_UNITES[a.type].force + (a.type === 'T' ? 2 : 0);
+        const forceB = TYPES_UNITES[b.type].force + (b.type === 'T' ? 2 : 0);
+        return forceA - forceB;
+      });
 
+    if (unitesEnDanger.length > 0) {
+      const u = unitesEnDanger[0];
+      log('<i class="fas fa-shield"></i> PC défend son unité menacée !', 'j2');
+      activerDefense(u.ligne, u.col);
+      return;
+    }
+
+    // PRIORITÉ 2 : agir avec une unité mobile
+    let actionFaite = false;
     for (let u of mesUnites) {
       const cibles = calculerCasesAccessibles(u);
 
-      // CONDITION 1 : PC bloqué
       if (cibles.length === 0) {
-        log('<i class="fas fa-shield"></i> PC bloqué → défense !', 'j2');
-        activerDefense(u.ligne, u.col);
-        actionFaite = true;
-        break;
+        if (!u.enDefense && verifierEnnemisProches(u)) {
+          log('<i class="fas fa-shield"></i> PC bloqué et ennemi proche → défense !', 'j2');
+          activerDefense(u.ligne, u.col);
+          actionFaite = true;
+          break;
+        }
+        continue;
       }
 
-      // CONDITION 2 : ennemi adjacent plus fort que l'unité du PC
-      if (verifierEnnemiplusFort(u)) {
-        log('<i class="fas fa-shield"></i> PC détecte un ennemi plus fort → défense !', 'j2');
-        activerDefense(u.ligne, u.col);
-        actionFaite = true;
-        break;
-      }
-
-      // comportement normal : attaquer ou se déplacer
       const attaque = cibles.find(c => c.estEnnemi);
       const cible   = attaque || cibles[Math.floor(Math.random() * cibles.length)];
       if (cible.estEnnemi) lancerCombat(u, cible.l, cible.c);
@@ -483,7 +517,6 @@ function jouerTourPC() {
     if (!actionFaite) finirTour();
   }, 1000);
 }
-
 // Vérifie si un ennemi adjacent est plus fort que l'unité du PC
 function verifierEnnemiplusFort(unite) {
   const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
@@ -493,10 +526,29 @@ function verifierEnnemiplusFort(unite) {
     if (nl < 0 || nl >= TAILLE_GRILLE) continue;
     if (nc < 0 || nc >= TAILLE_GRILLE) continue;
     const voisine = etat.grille[nl][nc];
-    if (voisine.unite &&
-        voisine.unite.joueur !== unite.joueur &&
-        TYPES_UNITES[voisine.unite.type].force > TYPES_UNITES[unite.type].force) {
-      return true;
+    if (!voisine.unite) continue;
+    if (voisine.unite.joueur === unite.joueur) continue;
+
+    const ennemi = voisine.unite;
+    const forcePC        = TYPES_UNITES[unite.type].force
+                         + (unite.type === 'T' ? 2 : 0)
+                         + (unite.enDefense ? BONUS_DEFENSE : 0);
+    const forceEnnemiMax = TYPES_UNITES[ennemi.type].force + 6;
+
+    if (forceEnnemiMax > forcePC) return true;
+  }
+  return false;
+}
+function verifierEnnemisProches(unite) {
+  for (let dl = -2; dl <= 2; dl++) {
+    for (let dc = -2; dc <= 2; dc++) {
+      if (dl === 0 && dc === 0) continue;
+      const nl = unite.ligne + dl;
+      const nc = unite.col   + dc;
+      if (nl < 0 || nl >= TAILLE_GRILLE) continue;
+      if (nc < 0 || nc >= TAILLE_GRILLE) continue;
+      const voisine = etat.grille[nl][nc];
+      if (voisine.unite && voisine.unite.joueur !== unite.joueur) return true;
     }
   }
   return false;
